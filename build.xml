@@ -1,0 +1,123 @@
+<project name="graphServer" default="rebuild" basedir=".">
+
+	<!-- Properties -->
+	<property name="client.name" value="graphServer" />
+	<property name="client.version" value="0.1" />
+	<property name="build.home" value="build/${client.name}" />
+	<property name="deploy.home" value="${catalina.home}/webapps/${client.name}" />
+	<property name="build.classes" value="${build.home}/WEB-INF/classes" />
+	<property name="build.lib" value="${build.home}/WEB-INF/lib" />
+	
+	<!-- SSH info -->
+		<property name="user" value="mani" />
+		<property name="password" value="kordkooy" />
+		<property name="server" value="134.117.60.66" />
+		<property name="remote.home" value="/home/mani/tomcat5/webapps" />
+	
+	<!-- ==================== Rebuild Target ============================== -->
+		<target name="rebuild" description="Assembles the client and server and deploys them to Tomcat.">
+			<antcall target="clean" />
+			<antcall target="catalina check" />
+			<antcall target="compile" />
+			<antcall target="prepare" />			
+			<antcall target="deploy" />
+		</target>
+	
+	<!-- ==================== Deploy Target =============================== -->
+		<target name="deploy" if="catalina.home" description="Called by client build target to prepare and deploy.">
+			
+			<!-- Copy build to deploy directory. -->
+			<echo message="Deploying build files to ${deploy.home}" level="info"/>
+			<mkdir dir="${deploy.home}" />
+			<copy todir="${deploy.home}">
+				<fileset dir="${build.home}" />
+			</copy>
+			
+			<scp remoteTodir="${user}@${server}:${remote.home}"
+			  password="${password}"
+			  trust="yes"
+			  sftp="true">
+			    <fileset dir="build">
+			      <include name="**/*"/>
+			    </fileset>
+			</scp>
+			
+			
+		</target>
+
+		<!-- ==================== Compile Target ============================== -->
+		<target name="compile" if="catalina.home" unless="noCompile" description="Compiles Java classes using Javac.">
+			<echo message="Compiling classes." level="info"/>
+			<mkdir dir="${build.classes}" />
+
+			<!-- Compile to class files. -->
+			<javac srcdir="src" destdir="${build.classes}" deprecation="on">
+				<classpath>
+					<fileset dir="${build.classes}">
+						<include name="*.class" />
+					</fileset>
+					<fileset dir="lib">
+						<include name="**/*.jar"/>
+					</fileset>
+					<pathelement location="${catalina.home}/common/lib/servlet-api.jar" />
+					<pathelement location="${catalina.home}/common/lib/jsp-api.jar" />
+				</classpath>
+			</javac>	
+			
+			<!-- Copy non-class files from source tree (i.e. properties files). -->
+			<copy todir="${build.classes}">
+				<fileset dir="src">
+					<exclude name="**/*.java" />
+				</fileset>
+			</copy>
+		</target>
+	
+				<!-- ==================== Prepare Target ============================== -->
+					<target name="prepare" depends="compile" description="Copies static files to the build directories.">
+						
+						<!-- Create build directory and copy static content. -->
+						<echo message="Copying static content and libraries." level="info"/>
+						<mkdir dir="${build.home}" />
+						<copy todir="${build.home}">
+							<fileset dir="web">
+								<patternset>
+									<exclude name="*.bak" />
+									<exclude name="**/*.bak" />
+									<exclude name="**/*~" />
+									<exclude name=".temp" />
+									<exclude name="**/.temp" />
+								</patternset>
+							</fileset>
+						</copy>
+						
+						<!-- Copy instance specific web application libraries. -->
+						<mkdir dir="${build.lib}" />
+						<copy todir="${build.lib}">
+							<fileset dir="lib">
+								<patternset id="tomcat.app.lib">
+									<include name="**/*.jar"/>
+								</patternset>
+							</fileset>
+						</copy>
+						
+					</target>
+	
+		<!-- ==================== Catalina Check ============================== -->
+		<target name="catalina check" unless="catalina.home" description="Displays an error message and exits if the catalina.home property is not set.">
+			<echo message="The catalina.home property must be set. It can be passed as a command-line parameter (e.g. -Dcatalina.home=C:\tomcat5)." level="error"/>
+			<fail message="The catalina.home property must be set. It can be passed as a command-line parameter (e.g. -Dcatalina.home=C:\tomcat5)." />
+		</target>
+	
+	<!-- ==================== Clean Target ================================ -->
+		<target name="clean" if="catalina.home" description="Cleans build and deployed files.">
+			<delete dir="${build.home}" />
+			<delete dir="${deploy.home}" />
+			<sshexec host="${server}" 
+				username="${user}" 
+				password="${password}"
+			  	trust="yes"
+			  	command="rm -rf ${remote.home}/${client.name}"
+			/>
+		</target>
+	
+</project>
