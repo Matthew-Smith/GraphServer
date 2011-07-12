@@ -60,11 +60,40 @@ public class P2PGraph implements UDPListener {
 	}
 	//[end] Create Documents for sending over the web
 
-	private static LogEvent parseEvent(String rawEvent) {
-		String parsedEvent = rawEvent;
-		//TODO Parse
-
-		LogEvent evt = new LogEvent(parsedEvent);
+	private LogEvent parseEvent(String rawEvent, String IPAddress, int port) {
+		String peerIdentifier = IPAddress+"-"+port;
+		String delim = "[ ]+";
+		String[] token = rawEvent.split(delim);
+		String rawType = token[1].toLowerCase();
+		long time = Long.parseLong(token[0]);
+		String type = rawType;
+		int param1 = 0;
+		int param2 = 0;
+		
+		if(rawType.equals("queryHit")) {
+			
+		} else if(rawType.equals("query")) {
+			
+		} else if(rawType.equals("online")) {
+			RawPeer p = new RawPeer(peerIdentifier);
+			peerTable.put(IPAddress+":"+token[2], p);
+			type = rawType;
+			param1 = p.getKey();
+			
+		} else if(rawType.equals("connect")) {
+			
+		} else if(rawType.equals("offline")) {
+			
+		} else if(rawType.equals("query_reaches_peer")) {
+			type="queryreachespeer";
+		} else if(rawType.equals("publish")) {
+			
+		} else if(rawType.equals("remove")) {
+			
+		}
+		
+		
+		LogEvent evt = new LogEvent(time, type, param1, param2);
 		return evt;
 	}
 
@@ -83,10 +112,10 @@ public class P2PGraph implements UDPListener {
 		rawEvent = rawEvent.substring(0,rawEvent.indexOf("\n"));
 		InetAddress IPAddress = receivePacket.getAddress();
 		int port = receivePacket.getPort();
-		LogEvent evt = parseEvent(rawEvent);
+		LogEvent evt = parseEvent(rawEvent, IPAddress.toString(), port);
 		
 		referenceGraph.graphConstructionEvent(evt);
 		graph.graphEvent(evt, true, referenceGraph);
-
+		logEvents.add(evt);
 	}
 }
