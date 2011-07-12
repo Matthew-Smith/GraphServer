@@ -4,43 +4,43 @@ Application 2.3//EN" "http://java.sun.com/dtd/web-app_2_3.dtd">
 <web-app>
     <display-name>GraphServer</display-name>
     <description>
-    	Manage a graph of a live or simulated network.
+     Manage a graph of a live or simulated network.
     </description>
 
-	
-	<servlet>
+
+<servlet>
         <servlet-name>graphServer</servlet-name>
         <display-name></display-name>
         <description></description>
-        <servlet-class>graphServer.GraphServlett</servlet-class>
+        <servlet-class>graphServer.GraphServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
 
-	<servlet-mapping>
-	  <servlet-name>graphServer</servlet-name>
-	  <url-pattern>/*</url-pattern>
-	</servlet-mapping>
-	
+<servlet-mapping>
+<servlet-name>graphServer</servlet-name>
+<url-pattern>/*</url-pattern>
+</servlet-mapping>
+
     <session-config>
         <session-timeout>30</session-timeout>
     </session-config>
 
-	<mime-mapping>
-	  <extension>xml</extension>
-	  <mime-type>text/xml</mime-type>
-	</mime-mapping>
+<mime-mapping>
+<extension>xml</extension>
+<mime-type>text/xml</mime-type>
+</mime-mapping>
 
-	<security-constraint>
-		<web-resource-collection>
-			<web-resource-name>NoAccess</web-resource-name>
-			<url-pattern>/data/*</url-pattern>
-			<url-pattern>/log/*</url-pattern>
-			<http-method>GET</http-method>
-			<http-method>POST</http-method>
-			<http-method>DELETE</http-method>
-			<http-method>PUT</http-method>
-		</web-resource-collection>
-		<auth-constraint></auth-constraint>
-	</security-constraint>
+<security-constraint>
+<web-resource-collection>
+<web-resource-name>NoAccess</web-resource-name>
+<url-pattern>/data/*</url-pattern>
+<url-pattern>/log/*</url-pattern>
+<http-method>GET</http-method>
+<http-method>POST</http-method>
+<http-method>DELETE</http-method>
+<http-method>PUT</http-method>
+</web-resource-collection>
+<auth-constraint></auth-constraint>
+</security-constraint>
 
 </web-app>

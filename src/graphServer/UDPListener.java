@@ -1,9 +1,9 @@
 package graphServer;
 
-import java.net.InetAddress;
+import java.net.DatagramPacket;
 
 public interface UDPListener {
-	
-	public void receiveMessage(String message, InetAddress IPAddress, int port);
+
+	public void receiveMessage(DatagramPacket receivePacket);
 	
 }
