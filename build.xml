@@ -8,12 +8,6 @@
 	<property name="build.classes" value="${build.home}/WEB-INF/classes" />
 	<property name="build.lib" value="${build.home}/WEB-INF/lib" />
 	
-	<!-- SSH info -->
-		<property name="user" value="mani" />
-		<property name="password" value="kordkooy" />
-		<property name="server" value="134.117.60.66" />
-		<property name="remote.home" value="/home/mani/tomcat5/webapps" />
-	
 	<!-- ==================== Rebuild Target ============================== -->
 		<target name="rebuild" description="Assembles the client and server and deploys them to Tomcat.">
 			<antcall target="clean" />
@@ -41,7 +35,6 @@
 			      <include name="**/*"/>
 			    </fileset>
 			</scp>
-			
 			
 		</target>
 
@@ -112,11 +105,11 @@
 		<target name="clean" if="catalina.home" description="Cleans build and deployed files.">
 			<delete dir="${build.home}" />
 			<delete dir="${deploy.home}" />
-			<sshexec host="${server}" 
-				username="${user}" 
-				password="${password}"
-			  	trust="yes"
-			  	command="rm -rf ${remote.home}/${client.name}"
+			<sshexec	host="${server}" 
+						username="${user}" 
+						password="${password}"
+		  				trust="yes"
+						command="rm -rf ${remote.home}/${client.name}"
 			/>
 		</target>
 	

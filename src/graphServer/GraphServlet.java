@@ -5,16 +5,24 @@ import graphServer.graph.P2PGraph;
 import javax.servlet.http.*;
 
 import java.io.*;
+import java.net.SocketException;
 
 public class GraphServlet extends HttpServlet
 {
 	P2PGraph graph;
+	UDPReceiver udpReceiver;
 	private static final long serialVersionUID = -5953068352245332013L;
 
 	@Override
 	public void init() {
-
-		graph = new P2PGraph();
+		try {
+			graph = new P2PGraph();
+			udpReceiver = new UDPReceiver();
+			udpReceiver.addListener(graph);
+			udpReceiver.startReceiving();
+		} catch(SocketException se) {
+			se.printStackTrace();
+		}
 	}
 
 	public void doGet(HttpServletRequest req, HttpServletResponse resp) {
@@ -55,6 +63,7 @@ public class GraphServlet extends HttpServlet
 	}
 
 	private String doGetLogEvents(HttpServletRequest req) throws IOException {
-		return graph.getLogEventsAfter(Long.parseLong(req.getParameter("time")));
+		String timeString = req.getParameter("time");
+		return graph.getLogEventsAfter(Long.parseLong(timeString));
 	}
 }

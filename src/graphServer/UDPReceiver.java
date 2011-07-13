@@ -29,17 +29,20 @@ public class UDPReceiver {
 
 			@Override
 			public void run() {
+				System.out.println("Event Dispatch Thread Started");
 				while(listening) {
 					consumeData();
 				}
 			}
 			
 		});
+		eventDispatch.setDaemon(true);
 		
 		socketListener = new Thread(new Runnable() {
 
 			@Override
 			public void run() {
+				System.out.println("Socket Listener Thread Started");
 				while(listening) {
 					try {
 						byte[] arrayOfByte = new byte[1024];
@@ -52,6 +55,7 @@ public class UDPReceiver {
 			}
 			
 		});
+		socketListener.setDaemon(true);
 		
 		receivedData = new LinkedList<DatagramPacket>();
 	}
@@ -89,6 +93,7 @@ public class UDPReceiver {
 	public void startReceiving() {
 		socketListener.start();
 		eventDispatch.start();
+		System.out.println("Start Receiving UDP");
 	}
 	
 	private void putData(DatagramPacket packet) {
@@ -112,7 +117,8 @@ public class UDPReceiver {
 					receivedData.wait();
 				} catch(InterruptedException ignore) {}
 			}
-			notifyReceiveMessage(receivedData.removeLast());
+			DatagramPacket packet = receivedData.removeLast();
+			notifyReceiveMessage(packet);
 			receivedData.notifyAll();
 		}
 	}
