@@ -2,13 +2,13 @@ package graphServer.graph;
 
 public class RawQueryHit {
 	private RawDocument document;
-	private QueryOutput queryOutput;
+	private RawQuery query;
 	private int key;
 	private static int keyCounter = 0;
 	
-	public RawQueryHit(RawDocument document, QueryOutput queryOutput) {
+	public RawQueryHit(RawDocument document, RawQuery query) {
 		this.document = document;
-		this.queryOutput = queryOutput;
+		this.query = query;
 		this.key = keyCounter;
 		keyCounter += 1;
 	}
@@ -17,8 +17,8 @@ public class RawQueryHit {
 		return document;
 	}
 	
-	public QueryOutput getQueryOutput() {
-		return queryOutput;
+	public RawQuery getQuery() {
+		return query;
 	}
 	
 	public int getKey() {

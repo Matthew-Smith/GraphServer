@@ -8,10 +8,12 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map.Entry;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import spiderweb.graph.*;
 import spiderweb.graph.savingandloading.P2PNetworkGraphSaver;
-import spiderweb.visualizer.eventplayer.LogEvent;
+import spiderweb.graph.LogEvent;
 
 public class P2PGraph implements UDPListener {
 
@@ -20,11 +22,13 @@ public class P2PGraph implements UDPListener {
 	private P2PNetworkGraph referenceGraph;
 	private LinkedList<LogEvent> logEvents;
 	private long simulationTime;
-	private Hashtable<String, RawPeer> peerTable;
-	private Hashtable<String, RawDocument> documentTable;
-	private Hashtable<String, RawQuery> queryTable;
-	private Hashtable<String, RawQueryHit> queryHitTable;
-	private Hashtable<String, QueryOutput> queryOutputTable;
+	private Hashtable<String, RawPeer> peerTable;			// IP-UDPPort -> IP:Gnutella Port + key
+	private Hashtable<String, RawDocument> documentTable;	// CommunityID/DocumentID -> Community + Document + key
+	private Hashtable<Integer, RawQuery> queryTable;		// QueryOutput key -> Community + QueryString + key
+	private Hashtable<Integer, RawQueryHit> queryHitTable;	// QueryOutput key -> document + query + key
+	private QueryOutputs queryOutputTable;					// index(QueryOutput key) -> QueryID
+	
+	private Timer colourEventTimer;
 
 	public P2PGraph() {
 		referenceGraph = new P2PNetworkGraph();
@@ -34,9 +38,11 @@ public class P2PGraph implements UDPListener {
 		
 		peerTable = new Hashtable<String, RawPeer>();
 		documentTable = new Hashtable<String, RawDocument>();
-		queryTable = new Hashtable<String, RawQuery>();
-		queryHitTable = new Hashtable<String, RawQueryHit>();
-		queryOutputTable = new Hashtable<String, QueryOutput>();
+		queryTable = new Hashtable<Integer, RawQuery>();
+		queryHitTable = new Hashtable<Integer, RawQueryHit>();
+		queryOutputTable = new QueryOutputs();
+		
+		colourEventTimer = new Timer("Place Decolour Events Thread", true);
 	}
 
 	//[start] Create Documents for sending over the web
@@ -80,13 +86,32 @@ public class P2PGraph implements UDPListener {
 		int param2 = 0;
 		
 		if(rawType.equals("queryHit")) {
+			String queryID = token[2];
+			int queryKey = queryOutputTable.getKey(queryID);
 			
+			String documentMappingKey = token[3]+"/"+token[4];
+			RawDocument d = documentTable.get(documentMappingKey);
+			d.setTitle(token[5]);
+			
+			RawQueryHit rqh = new RawQueryHit(d,queryTable.get(queryKey));
+			queryHitTable.put(queryKey,rqh);
+			
+			param1 = peerTable.get(peerMappingKey).getKey();
+			param2 = d.getKey();
+			//param3 = queryKey;
 		} 
 		else if(rawType.equals("query")) {
+			String queryID = token[2];
 			String community = token[3].split("[:]+")[1];
 			String queryString = token[4].split("[:]+")[1];
 			
+			int queryKey = queryOutputTable.add(queryID);
 			RawQuery rq = new RawQuery(community,queryString);
+			queryTable.put(queryKey, rq);
+			
+			param1 = peerTable.get(peerMappingKey).getKey();
+			param2 = rq.getKey();
+			//param3 = key;
 		}
 		else if(rawType.equals("online")) {
 			String uniquePeerID = IPAddress+":"+token[2];
@@ -117,9 +142,12 @@ public class P2PGraph implements UDPListener {
 		} 
 		else if(rawType.equals("query_reaches_peer")) {
 			type="queryreachespeer";
+			String queryID = token[2];
+			
+			param1 = peerTable.get(peerMappingKey).getKey();
+			param2 = queryOutputTable.getKey(queryID);
 		} 
 		else if(rawType.equals("publish")) {
-			param1 = peerTable.get(peerMappingKey).getKey();
 			String documentMappingKey = token[2]+"/"+token[3];
 			RawDocument d;
 			if(documentTable.containsKey(documentMappingKey)) {
@@ -129,15 +157,18 @@ public class P2PGraph implements UDPListener {
 				d = new RawDocument(token[2],token[3]);
 				documentTable.put(documentMappingKey, d);
 			}
+			param1 = peerTable.get(peerMappingKey).getKey();
 			param2 = d.getKey();
 		} 
 		else if(rawType.equals("remove")) {
-			
+			String documentMappingKey = token[2]+"/"+token[3];
+			param1 = peerTable.get(peerMappingKey).getKey();
+			param2 = documentTable.get(documentMappingKey).getKey();
 		}
 		
 		
 		LogEvent evt = new LogEvent(time, type, param1, param2);
-		//System.out.println(evt);
+		System.out.println(evt);
 		return evt;
 	}
 
@@ -158,8 +189,31 @@ public class P2PGraph implements UDPListener {
 		int port = receivePacket.getPort();
 		LogEvent evt = parseEvent(rawEvent, IPAddress.toString(), port);
 		
+		
 		referenceGraph.graphConstructionEvent(evt);
+		if(evt.isColouringEvent()) {
+			int delay = 2000;
+			LogEvent opposite = LogEvent.createOpposingLogEvent(evt, delay);
+			colourEventTimer.schedule(new DecolourTask(opposite), delay);
+		}
 		graph.graphEvent(evt, true, referenceGraph);
 		logEvents.add(evt);
+		simulationTime = evt.getTime();
+	}
+	
+	private class DecolourTask extends TimerTask {
+		private LogEvent toAdd;
+		
+		public DecolourTask(LogEvent toAdd) {
+			this.toAdd = toAdd;
+		}
+		
+		public void run() {
+			
+			synchronized(logEvents) {
+				logEvents.add(toAdd);
+			}
+			logEvents.notifyAll();
+		}
 	}
 }
