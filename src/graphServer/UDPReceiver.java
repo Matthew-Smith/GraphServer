@@ -1,3 +1,11 @@
+/*
+ * File:         UDPReceiver.java
+ * Created:      18/07/2011
+ * Last Changed: $Date: 18/07/2011 $
+ * Author:       <A HREF="mailto:smith_matthew@live.com">Matthew Smith</A>
+ * 
+ * This code was produced at Carleton University 2011
+ */
 package graphServer;
 
 import java.io.IOException;
@@ -6,6 +14,14 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.LinkedList;
 
+/**
+ * A UDPReceiver acts as a server where packets can be received and passed to 
+ * objects which are interested in handling the packets the server receives.
+ * 
+ * @author <A HREF="mailto:smith_matthew@live.com">Matthew Smith</A>
+ * @version $Date: 18/07/2011 $
+ * @see UDPListener
+ */
 public class UDPReceiver {
 
 	public static final int theport = 8888;
@@ -59,6 +75,16 @@ public class UDPReceiver {
 		
 		receivedData = new LinkedList<DatagramPacket>();
 	}
+	
+	public String getDebugInfo() {
+		StringBuffer b = new StringBuffer();
+		
+		
+		
+		
+	
+		return b.toString();
+	}
 
 	//[start] Listener Methods
 
@@ -72,9 +98,7 @@ public class UDPReceiver {
 
 	/**
 	 * Notifies all listeners on a new thread that a message has been received.
-	 * @param message The received message.
-	 * @param IPAddress The IP-Address of the sender of the message.
-	 * @param port The port on which the message was received.
+	 * @param packet	
 	 */
 	private void notifyReceiveMessage(final DatagramPacket packet) {
 		Thread eventDispatch = new Thread(new Runnable() {

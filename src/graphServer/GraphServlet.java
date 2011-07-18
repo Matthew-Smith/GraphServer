@@ -1,3 +1,11 @@
+/*
+ * File:         GraphServlet.java
+ * Created:      18/07/2011
+ * Last Changed: $Date: 18/07/2011 $
+ * Author:       <A HREF="mailto:smith_matthew@live.com">Matthew Smith</A>
+ * 
+ * This code was produced at Carleton University 2011
+ */
 package graphServer;
 
 import graphServer.graph.P2PGraph;
@@ -39,6 +47,9 @@ public class GraphServlet extends HttpServlet
 			else if(req.getRequestURI().endsWith("getLogEvents")) {
 				responseString = doGetLogEvents(req);
 			}
+			else if(req.getRequestURI().endsWith("debug")) {
+				responseString = doGetDebug(req);
+			}
 			else {
 				responseString = "<ERROR/>";
 				resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -64,6 +75,17 @@ public class GraphServlet extends HttpServlet
 
 	private String doGetLogEvents(HttpServletRequest req) throws IOException {
 		String timeString = req.getParameter("time");
+		System.out.println("Get Log Events after: "+timeString);
 		return graph.getLogEventsAfter(Long.parseLong(timeString));
+	}
+	
+	private String doGetDebug(HttpServletRequest req) throws IOException {
+		StringBuffer b = new StringBuffer();
+		b.append("<HTML>\n\t<BODY>\n");
+		
+		b.append(graph.getDebugInfo() + udpReceiver.getDebugInfo());
+		
+		b.append("\t</BODY>\n</HTML>");
+		return b.toString();
 	}
 }

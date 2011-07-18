@@ -1,3 +1,11 @@
+/*
+ * File:         RawQuery.java
+ * Created:      18/07/2011
+ * Last Changed: $Date: 18/07/2011 $
+ * Author:       <A HREF="mailto:smith_matthew@live.com">Matthew Smith</A>
+ * 
+ * This code was produced at Carleton University 2011
+ */
 package graphServer.graph;
 
 public class RawQuery {
