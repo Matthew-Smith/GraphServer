@@ -1,7 +1,7 @@
 /*
  * File:         P2PGraph.java
  * Created:      18/07/2011
- * Last Changed: $Date: 18/07/2011 $
+ * Last Changed: Date: 18/07/2011 
  * Author:       <A HREF="mailto:smith_matthew@live.com">Matthew Smith</A>
  * 
  * This code was produced at Carleton University 2011
@@ -12,7 +12,6 @@ import graphServer.UDPListener;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -25,6 +24,12 @@ import spiderweb.graph.*;
 import spiderweb.graph.savingandloading.P2PNetworkGraphSaver;
 import spiderweb.graph.LogEvent;
 
+/**
+ * P2PGraph maintains the P2PNetworkGraph and log events received from the UDP Connection.
+ * 
+ * @author <A HREF="mailto:smith_matthew@live.com">Matthew Smith</A>
+ * @version Date: 18/07/2011 
+ */
 public class P2PGraph implements UDPListener {
 									  
 	public static final long EPOCH = 1309514400000L; //Happy Canada Day 2011 (July 1, 2011 12:00am GMT)
@@ -40,6 +45,11 @@ public class P2PGraph implements UDPListener {
 	private LinkedList<String> incomingMessages;
 	private StringBuffer graphLog;
 	
+	//[start] Constructor
+	/**
+	 * Construct the P2PGraph
+	 * Sets up the graph and lists/tables for storing and handling UDP Messages.
+	 */
 	public P2PGraph() {
 		referenceGraph = new P2PNetworkGraph();
 		graph = new P2PNetworkGraph();
@@ -56,13 +66,27 @@ public class P2PGraph implements UDPListener {
 		graphLog = new StringBuffer();
 		log("Constructor Completed.");
 	}
+	//[end] Constructor
 
 	//[start] Create Documents for sending over the web
+	/**
+	 * Creates a String with the graph information at the current network time.
+	 * 
+	 * Formatted as XML for use with spiderweb visualizer.
+	 * @return The XML document containing all vertices and edges of the graph, as a String.
+	 */
 	public String createCurrentGraphDocument() {
 		log("\n\tCreating Document for Current Graph.\n");
 		return P2PNetworkGraphSaver.saveGraphForWeb(graph, simulationTime);
 	}
 
+	/**
+	 * Iterates over the list of log events and creates a String containing all the log events after the passed time.
+	 * 
+	 * Formatted as XML for use with spiderweb visualizer.
+	 * @param time the time for which to get log events after.
+	 * @return The XML document containing the log events, as a string.
+	 */
 	public String createLogEventDocument(long time) {
 		log("\n\tCreating Document for Log Events after time: "+time+"ms");
 		LinkedList<LogEvent> toSend = new LinkedList<LogEvent>();
@@ -71,17 +95,17 @@ public class P2PGraph implements UDPListener {
 		
 		log("\tEvents to send: ");
 		
-		while(it.hasPrevious()) {
+		while(it.hasPrevious()) { //go backwards through list
 			LogEvent evt = it.previous();
-			if(time<evt.getTime()) {
-				toSend.add(evt);
+			if(time<evt.getTime()) { //don't add the event at the passed time as they will already have it
+				toSend.addFirst(evt); //add event to the beginning of the list of events to send because of iterating in reverse.
 				log("\t\t"+evt);
 			}
 			else {
 				break; //since Log Events are ordered in the list, there will be no point continuing the loop
 			}
 		}
-		log("");
+		log(""); // put a new line in the log
 		
 		String s = P2PNetworkGraphSaver.saveEventsForWeb(toSend, simulationTime);
 		return s;
@@ -129,7 +153,7 @@ public class P2PGraph implements UDPListener {
 		String community = token[4].split("[:]+")[1];
 		String queryString = token[5].split("[:]+")[1];
 		
-		int queryKey = queryOutputTable.add(queryID);
+		int queryKey = queryOutputTable.getKey(queryID);
 		RawQuery rq = new RawQuery(community,queryString);
 		queryTable.put(queryKey, rq);
 		
@@ -363,8 +387,11 @@ public class P2PGraph implements UDPListener {
 	}
 	//[end] Parsing Methods
 
+	//[start] Getters for the HTTP servlet
 	/**
-	 * Creates an XML document with all the log events after the passed time.
+	 * Creates a String with all the log events after the passed time.
+	 * 
+	 * Formatted as XML for use with spiderweb visualizer.
 	 * @return The XML document containing the log events, as a string.
 	 */
 	public String getLogEventsAfter(long time) {
@@ -373,7 +400,9 @@ public class P2PGraph implements UDPListener {
 	}
 
 	/**
-	 * Creates an XML document with the graph at the current time.
+	 * Creates a String with the graph information at the current network time.
+	 * 
+	 * Formatted as XML for use with spiderweb visualizer.
 	 * @return The XML document containing the graph, as a string.
 	 */
 	public String getCurrentGraph() {
@@ -381,13 +410,15 @@ public class P2PGraph implements UDPListener {
 	}
 	
 	/**
-	 * Creates a formatted String with the data of the current Graph.
-	 * @return String with the current graph info.
+	 * Returns a String with debug information about the P2P Graph.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with debug information.
 	 */
 	public String getDebugInfo() { 
 		StringBuffer b = new StringBuffer();
 		
-		b.append("\t<H1>Debug Info</H1>\n");
+		
 		b.append("\t<H3>LogEvents</H3>\n");
 		b.append("\tTotal Events: "+logEvents.size()+"\n");
 		b.append("\t<OL>\n");
@@ -397,7 +428,8 @@ public class P2PGraph implements UDPListener {
 		b.append("\t</OL>\n");
 		
 		b.append("\t<H3>Graph Info</H3>\n");
-		b.append("\tNumberVertices: "+graph.getVertexCount()+"\n");
+		b.append("\tNumber of Vertices: "+graph.getVertexCount()+"\n");
+		b.append("\tNumber of Edges: "+graph.getEdgeCount()+"\n");
 		
 		b.append("\t<H3>Incoming UDPMessages</H3>\n");
 		
@@ -412,7 +444,9 @@ public class P2PGraph implements UDPListener {
 		b.append("\t<p><pre>\n\t"+graphLog+"\t</pre></p>\n");
 		return b.toString();
 	}
+	//[end] Getters for the HTTP servlet
 
+	//[start] UDP Listener
 	@Override
 	public synchronized void receiveMessage(DatagramPacket receivePacket) {
 		log("\tMessage Received.");
@@ -439,19 +473,30 @@ public class P2PGraph implements UDPListener {
 			simulationTime = evt.getTime();
 		}
 	}
+	//[end] UDP Listener
 	
+	//[start] Loggers
 	/**
-	 * 
+	 * Places the passed String into the graphLog StringBuffer.
 	 * @param toLog The String to log.
 	 */
 	private void log(String toLog) {
 		graphLog.append(toLog+"\n");
 	}
 	
+	/**
+	 * Places the passed String into the graphLog StringBuffer, surrounds with HTML bold.
+	 * @param error the String to log.
+	 */
 	private void logError(String error) {
 		graphLog.append("<b>"+error+"</b>\n");
 	}
+	//[end] Loggers
 	
+	//[start] Decolour Task Class
+	/**
+	 * The DecolourTask executes a set time after a log event is added so that any colouring event has an opposite.
+	 */
 	private class DecolourTask extends TimerTask {
 		private LogEvent toAdd;
 		
@@ -459,6 +504,7 @@ public class P2PGraph implements UDPListener {
 			this.toAdd = toAdd;
 		}
 		
+		@Override
 		public void run() {
 			
 			synchronized(logEvents) {
@@ -467,4 +513,5 @@ public class P2PGraph implements UDPListener {
 			}
 		}
 	}
+	//[end] Decolour Task Class
 }
