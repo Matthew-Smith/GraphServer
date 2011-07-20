@@ -189,10 +189,10 @@ public class UDPReceiver {
 		StringBuffer b = new StringBuffer();
 		
 		b.append("\t<H3>UDP Info</H3>\n");
-		b.append("\tUDP Port: "+port+"\n");
-		b.append("\tListening: "+listening+"\n");
-		b.append("\tNumber of Listeners: "+listeners.size()+"\n");
-		b.append("\tNumber of packets in the buffer: "+receivedData.size()+"\n");
+		b.append("<p>\n<dd>UDP Port: "+port+"<br />\n");
+		b.append("<dd>Listening: "+listening+"<br />\n");
+		b.append("<dd>Number of Listeners: "+listeners.size()+"<br />\n");
+		b.append("<dd>Number of packets in the buffer: "+receivedData.size()+"\n</p>\n");
 		
 		return b.toString();
 	}
