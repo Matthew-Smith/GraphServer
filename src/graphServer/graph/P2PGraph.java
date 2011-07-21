@@ -369,6 +369,7 @@ public class P2PGraph implements UDPListener {
 		log("\n\tbegin parsing Event: ");
 		StringBuffer b = new StringBuffer();
 		b.append("\n\tIP("+IPAddress.toString()+") Port("+port+")\n\t"+rawEvent);
+		incomingMessages.add(b.toString());
 		String delim = "\\s+";
 		String[] token = rawEvent.split(delim);
 		String rawType = token[2].toLowerCase();
@@ -416,9 +417,7 @@ public class P2PGraph implements UDPListener {
 			return  parseRemove(time, peerMappingKey, uniquePeerID, token);
 		}
 		
-		LogEvent evt = new LogEvent(-1, "ERROR, Event not parsed Properly.", 0, 0);
-		b.append("\n\t"+evt);
-		incomingMessages.add(b.toString());
+		LogEvent evt = new LogEvent(-1, "ERROR, Event not parsed Properly.", 0, 0);		
 		logError("\tMessage not parsed Properly.\n");
 		return evt;
 	}
