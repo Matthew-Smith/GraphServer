@@ -61,6 +61,24 @@ public class GraphServlet extends HttpServlet
 			else if(req.getRequestURI().endsWith("debug")) {
 				responseString = doGetDebug();
 			}
+			else if(req.getRequestURI().endsWith("getPeerInfo")) {
+				responseString = doGetPeerInfo();
+			}
+			else if(req.getRequestURI().endsWith("getQueryOutputInfo")) {
+				responseString = doGetQueryOutputInfo();
+			}
+			else if(req.getRequestURI().endsWith("getDocumentInfo")) {
+				responseString = doGetDocumentInfo();
+			}
+			else if(req.getRequestURI().endsWith("getQueryInfo")) {
+				responseString = doGetQueryInfo();
+			}
+			else if(req.getRequestURI().endsWith("getQueryHitInfo")) {
+				responseString = doGetQueryHitInfo();
+			}
+			else if(req.getRequestURI().endsWith("getRawData")) {
+				responseString = doGetRawData();
+			}
 			else {
 				responseString = "<ERROR/>";
 				resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -81,6 +99,9 @@ public class GraphServlet extends HttpServlet
 	}
 	//[end] Overridden init and doGet from HttpServlet
 	
+	
+
+
 	//[start] Getters for this servlet's specific requests
 	/**
 	 * Gets a String with the Vertices and Edges currently in the network graph.
@@ -117,6 +138,112 @@ public class GraphServlet extends HttpServlet
 		//get the debug info from the graph and UDP Receiver
 		b.append(graph.getDebugInfo()); 
 		b.append(udpReceiver.getDebugInfo());
+		
+		b.append("\t</BODY>\n</HTML>");
+		return b.toString();
+	}
+	
+	/**
+	 * Returns a String with information on all the query hits.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with all query hit information.
+	 */
+	private String doGetQueryHitInfo() {
+		StringBuffer b = new StringBuffer();
+		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		
+		//get the query hit info from the graph
+		b.append(graph.getQueryHitInfo()); 
+		
+		b.append("\t</BODY>\n</HTML>");
+		return b.toString();
+	}
+
+	/**
+	 * Returns a String with information on all the queries ever placed.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with query information.
+	 */
+	private String doGetQueryInfo() {
+		StringBuffer b = new StringBuffer();
+		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		
+		//get the query info from the graph
+		b.append(graph.getQueryInfo()); 
+		
+		b.append("\t</BODY>\n</HTML>");
+		return b.toString();
+	}
+
+	/**
+	 * Returns a String with information on all the documents that are ever published.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with document information.
+	 */
+	private String doGetDocumentInfo() {
+		StringBuffer b = new StringBuffer();
+		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		
+		//get the document info from the graph
+		b.append(graph.getDocumentInfo()); 
+		
+		b.append("\t</BODY>\n</HTML>");
+		return b.toString();
+	}
+
+	/**
+	 * Returns a String with information on all queryies placed and their Identifers
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with query output information.
+	 */
+	private String doGetQueryOutputInfo() {
+		StringBuffer b = new StringBuffer();
+		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		
+		//get the query output info from the graph
+		b.append(graph.getQueryOutputInfo()); 
+		
+		b.append("\t</BODY>\n</HTML>");
+		return b.toString();
+	}
+
+	/**
+	 * Returns a String with information on all the peers who ever come online.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with peer information.
+	 */
+	private String doGetPeerInfo() {
+		StringBuffer b = new StringBuffer();
+		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		
+		//get the peer info from the graph
+		b.append(graph.getPeerInfo()); 
+		
+		b.append("\t</BODY>\n</HTML>");
+		return b.toString();
+	}
+	
+	/**
+	 * Returns a String with information on all the raw events that happen to the network.
+	 * 
+	 * Contains HTML attributes for being displaed in a browser,
+	 * @return HTML String with raw network information.
+	 */
+	private String doGetRawData() {
+		StringBuffer b = new StringBuffer();
+		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("\t<H1>Raw Data</H1>\n");
+		
+		b.append(graph.getPeerInfo()); 
+		b.append(graph.getDocumentInfo()); 
+		b.append(graph.getQueryInfo()); 
+		b.append(graph.getQueryOutputInfo()); 
+		b.append(graph.getQueryHitInfo()); 		
 		
 		b.append("\t</BODY>\n</HTML>");
 		return b.toString();

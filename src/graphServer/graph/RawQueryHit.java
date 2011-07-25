@@ -56,4 +56,20 @@ public class RawQueryHit {
 	public int getKey() {
 		return key;
 	}
+	
+	@Override
+	public String toString() {
+		String[] documentInfo = document.toString().split("[\\r\\n]+");
+		String[] queryInfo = query.toString().split("[\\r\\n]+");
+		StringBuffer buffer = new StringBuffer("Key Index: "+key+"\n");
+		buffer.append("Document:\n");
+		for(int i=0;i<documentInfo.length;i++) {
+			buffer.append("\t"+documentInfo[i]+"\n");
+		}
+		buffer.append("Query:\n");
+		for(int i=0;i<queryInfo.length;i++) {
+			buffer.append("\t"+queryInfo[i]+"\n");
+		}
+		return buffer.toString();
+	}
 }

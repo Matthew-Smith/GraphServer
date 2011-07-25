@@ -43,8 +43,37 @@ public class QueryOutputs {
 		try {
 			return queryIDs.get(key);
 		} catch(IndexOutOfBoundsException e) {
-			return "No query mapped to passed Key";
+			return "No query mapped to key "+key;
 		}
 		
+	}
+
+	/**
+	 * Returns the number of Query IDs in the list.
+	 * @return the number of Query IDs in the list.
+	 */
+	public int size() {
+		return queryIDs.size();
+	}
+	
+	@Override
+	public String toString() {
+		StringBuffer buffer = new StringBuffer();
+		
+		return buffer.toString();
+	}
+	
+	/**
+	 * Returns the Query IDs formated as a list element for HTML display.
+	 * @return the list information with HTML list element tags.
+	 */
+	public String toHTMLList() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("\t<OL>\n");
+		for(int i=0;i<queryIDs.size();i++) {
+			buffer.append("\t\t<LI><PRE>"+getQueryID(i)+"</PRE></LI>\n");
+		}
+		buffer.append("\t</OL>\n");
+		return buffer.toString();
 	}
 }

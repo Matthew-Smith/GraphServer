@@ -76,4 +76,12 @@ public class RawDocument {
 	public String getTitle() {
 		return title;
 	}
+	
+	@Override
+	public String toString() {
+		return "Key Index: "+key+"\n" +
+		       "Community: "+community+"\n"+
+		       "Document:  "+document+"\n"+
+		       "Title:     "+title;
+	}
 }

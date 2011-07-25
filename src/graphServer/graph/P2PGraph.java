@@ -14,6 +14,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map.Entry;
@@ -38,13 +39,16 @@ public class P2PGraph implements UDPListener {
 	private P2PNetworkGraph referenceGraph;
 	private LinkedList<LogEvent> logEvents;
 	private long simulationTime;
-	private Hashtable<String, RawPeer> peerTable;			// IP-UDPPort -> IP:Gnutella Port + key
+	private Hashtable<String, RawPeer> peerTable;			// IP:UDPport -> IP:Gnutella Port + key
 	private Hashtable<String, RawDocument> documentTable;	// CommunityID/DocumentID -> Community + Document + key
 	private Hashtable<Integer, RawQuery> queryTable;		// QueryOutput key -> Community + QueryString + key
 	private Hashtable<Integer, RawQueryHit> queryHitTable;	// QueryOutput key -> document + query + key
 	private QueryOutputs queryOutputTable;					// index(QueryOutput key) -> QueryID
 	private LinkedList<String> incomingMessages;
 	private StringBuffer graphLog;
+	
+	//Peers who have been connected to but there is no knowledge of their UDP information
+	private LinkedList<RawPeer> knownPeers;	
 	
 	//[start] Constructor
 	/**
@@ -65,6 +69,8 @@ public class P2PGraph implements UDPListener {
 		
 		incomingMessages = new LinkedList<String>();
 		graphLog = new StringBuffer();
+		
+		knownPeers = new LinkedList<RawPeer>();
 		log("Constructor Completed.");
 	}
 	//[end] Constructor
@@ -119,11 +125,10 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the query reaches peer message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
-	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @return	The parsed query reaches peer log event for the network graph.
 	 */
-	private LogEvent parseQueryReachesPeer(long time, String peerMappingKey, String uniquePeerID, String[] token) {
+	private LogEvent parseQueryReachesPeer(long time, String peerMappingKey, String[] token) {
 		// time	 IP:gnutellaPort	 QUERY_REACHES_PEER	 QueryID
 		
 		String queryID = token[3];
@@ -131,7 +136,8 @@ public class P2PGraph implements UDPListener {
 		//The peer definitely exists because of being added in the parseEvent method before this method was called
 		int param1 = peerTable.get(peerMappingKey).getKey();
 		int param2 = queryOutputTable.getKey(queryID);// getKey will get the key value if it exists, or key it and return that new key
-		LogEvent evt = new LogEvent(time, "queryreachespeer",param1, param2);
+		LogEvent evt = new LogEvent(time, "queryreachespeer",param1, param2, 0);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -139,11 +145,11 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the query hit message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed query hit log event for the network graph.
 	 */
-	private LogEvent parseQueryHit(long time, String peerMappingKey, String uniquePeerID, String[] token) {
+	private LogEvent parseQueryHit(long time, String peerMappingKey, String[] token) {
 		// time	IP:gnutellaPort	QUERYHIT	QueryID		communityID	 documentID	 documentName
 		
 		
@@ -152,14 +158,18 @@ public class P2PGraph implements UDPListener {
 		RawDocument doc;
 		if(documentTable.containsKey(documentMappingKey)) {
 			doc = documentTable.get(documentMappingKey); //if the value exists, get it
-			doc.setTitle(token[6]);
 		}
 		else { //otherwise add a new entry
 			doc = new RawDocument(token[4],token[5]);
-			doc.setTitle(token[6]);
-			
 			documentTable.put(documentMappingKey, doc);
 		}
+		//The title could have been parsed on it's white space if it had any
+		StringBuffer docTitle = new StringBuffer();
+		for(int i=6;i<token.length;i++) { //anything after and including token[6] is the document title
+			docTitle.append(token[i]);
+		}
+		doc.setTitle(docTitle.toString());
+		
 		//[end] get Document info
 		
 		//[start] get Query info
@@ -182,9 +192,10 @@ public class P2PGraph implements UDPListener {
 		//The peer definitely exists because of being added in the parseEvent method before this method was called
 		int param1 = peerTable.get(peerMappingKey).getKey();
 		int param2 = doc.getKey();
-		//int param3 = queryKey;
+		int param3 = queryKey;
 		
-		LogEvent evt = new LogEvent(time, "queryhit",param1, param2);
+		LogEvent evt = new LogEvent(time, "queryhit",param1, param2, param3);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -193,16 +204,23 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the query message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed query log event for the network graph.
 	 */
-	private LogEvent parseQuery(long time, String peerMappingKey, String uniquePeerID, String[] token) {
+	private LogEvent parseQuery(long time, String peerMappingKey, String[] token) {
 		// time IP:gnutellaPort 	QUERY 	QueryID 	Community:communityID	Query:queryString
 		
 		String queryID = token[3];
 		String community = token[4].split("[:]+")[1];
-		String queryString = token[5].split("[:]+")[1];
+		
+		//the query string is split on the whitespace so tokens after index 4 are all information for the query String
+		StringBuffer queryStringBuffer = new StringBuffer();
+		queryStringBuffer.append(token[5].split("[:]+")[1]); 
+		for(int i=6;i<token.length;i++) {
+			queryStringBuffer.append(" "+token[i]);
+		}
+		String queryString = queryStringBuffer.toString();
 		
 		int queryKey = queryOutputTable.getKey(queryID);
 		RawQuery rq = new RawQuery(community,queryString);
@@ -211,9 +229,10 @@ public class P2PGraph implements UDPListener {
 		//The peer definitely exists because of being added in the parseEvent method before this method was called
 		int param1 = peerTable.get(peerMappingKey).getKey();
 		int param2 = rq.getKey();
-		//int param3 = queryKey;
+		int param3 = queryKey;
 		
-		LogEvent evt = new LogEvent(time, "query",param1, param2);
+		LogEvent evt = new LogEvent(time, "query",param1, param2, param3);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -221,17 +240,17 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the online message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed online log event for the network graph.
 	 */
-	private LogEvent parseOnline(long time, String peerMappingKey, String uniquePeerID) {
+	private LogEvent parseOnline(long time, String peerMappingKey) {
 		// time IP:gnutellaPort ONLINE
-		
 		//The peer definitely exists because of being added in the parseEvent method before this method was called
 		RawPeer p = peerTable.get(peerMappingKey);
 		int param1 = p.getKey();
-		LogEvent evt = new LogEvent(time, "online",param1, 0);
+		LogEvent evt = new LogEvent(time, "online",param1, 0, 0);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -239,17 +258,18 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the offline message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed offline log event for the network graph.
 	 */
-	private LogEvent parseOffline(long time, String peerMappingKey, String uniquePeerID) {
+	private LogEvent parseOffline(long time, String peerMappingKey) {
 		// time IP:gnutellaPort OFFLINE
 		
 		//The peer definitely exists because of being added in the parseEvent method before this method was called
 		RawPeer p = peerTable.get(peerMappingKey);
 		int param1 = p.getKey();
-		LogEvent evt = new LogEvent(time, "offline",param1, 0);
+		LogEvent evt = new LogEvent(time, "offline",param1, 0, 0);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -257,11 +277,11 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the publish message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed publish log event for the network graph.
 	 */
-	private LogEvent parsePublish(long time, String peerMappingKey, String uniquePeerID, String[] token) {
+	private LogEvent parsePublish(long time, String peerMappingKey, String[] token) {
 		// time	IP:gnutellaPort	PUBLISH communityID documentID
 		
 		String documentMappingKey = token[3]+"/"+token[4];
@@ -276,7 +296,8 @@ public class P2PGraph implements UDPListener {
 		//The peer definitely exists because of being added in the parseEvent method before this method was called
 		int param1 = peerTable.get(peerMappingKey).getKey();
 		int param2 = d.getKey();
-		LogEvent evt = new LogEvent(time, "publish",param1, param2);
+		LogEvent evt = new LogEvent(time, "publish",param1, param2, 0);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -284,11 +305,11 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the remove message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed remove log event for the network graph.
 	 */
-	private LogEvent parseRemove(long time, String peerMappingKey, String uniquePeerID, String[] token) {
+	private LogEvent parseRemove(long time, String peerMappingKey, String[] token) {
 		// time	IP:gnutellaPort	REMOVE communityID documentID
 		
 		String documentMappingKey = token[3]+"/"+token[5];
@@ -296,7 +317,8 @@ public class P2PGraph implements UDPListener {
 		int param1 = peerTable.get(peerMappingKey).getKey();
 		
 		int param2 = documentTable.get(documentMappingKey).getKey();
-		LogEvent evt = new LogEvent(time, "remove",param1, param2);
+		LogEvent evt = new LogEvent(time, "remove",param1, param2, 0);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -304,24 +326,36 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the connect message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed connect log event for the network graph.
 	 */
-	private LogEvent parseConnect(long time, String peerMappingKey, String uniquePeerID, String[] token) {
-		// time	IP:gnutellaPort	CONNECT (other peer)IP:gnutellaPort
-		
+	private LogEvent parseConnect(long time, String peerMappingKey, String[] token) {
+		// time	gnutellaID	CONNECT (other peer)gnutellaID
 		//The peer definitely exists because of being added in the parseEvent method before this method was called
 		RawPeer p1 = peerTable.get(peerMappingKey); 
 		int param1 = p1.getKey();
-		int param2 = 0;
-		for(Entry<String, RawPeer> entry : peerTable.entrySet()) {
-			if(entry.getValue().getIdentifier().equals(token[2])) {
+		int param2 = -1;
+		for(Entry<String, RawPeer> entry : peerTable.entrySet()) { //check peer map
+			if(entry.getValue().getIdentifier().equals(token[3])) {
 				param2 = entry.getValue().getKey();
 				break;
 			}
 		}
-		LogEvent evt = new LogEvent(time, "connect",param1, param2);
+		for(RawPeer peer : knownPeers) {
+			if(peer.getIdentifier().equals(token[3])) { //check known list of peers not in mapping table
+				param2 = peer.getKey();
+				break;
+			}
+		}
+		if(param2 == -1) { //peer still not found, add to the known list of peers
+			RawPeer p = new RawPeer(token[3]);
+			knownPeers.add(p);
+			log("\tPeer not found in mapping table or known peer list.\n\tPut "
+					+token[3]+" into list of known peers not in mapping table.");
+		}
+		LogEvent evt = new LogEvent(time, "connect",param1, param2, 0);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -329,28 +363,35 @@ public class P2PGraph implements UDPListener {
 	 * Creates and returns a LogEvent corresponding to the disconnect message for the 
 	 * network graph given the data from the received UDP Message.
 	 * @param time	The Network time.
-	 * @param peerMappingKey	The mapping key for this given peer "IP-UDPport".
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
 	 * @param uniquePeerID	The unique ID for this peer "IP:GnutellaPort".
 	 * @return	The parsed disconnect log event for the network graph.
 	 */
-	private LogEvent parseDisconnect(long time, String peerMappingKey, String uniquePeerID, String[] token) {
-		RawPeer p1;
-		if(peerTable.containsKey(peerMappingKey)) {
-			p1 = peerTable.get(peerMappingKey);
-		}
-		else {
-			p1 = new RawPeer(token[2]);
-			peerTable.put(peerMappingKey, p1);
-		}
+	private LogEvent parseDisconnect(long time, String peerMappingKey, String[] token) {
+		RawPeer p1 = peerTable.get(peerMappingKey);
+		
 		int param1 = p1.getKey();
-		int param2 = 0;
-		for(Entry<String, RawPeer> entry : peerTable.entrySet()) {
-			if(entry.getValue().getIdentifier().equals(token[2])) {
+		int param2 = -1;
+		for(Entry<String, RawPeer> entry : peerTable.entrySet()) { //check peer map
+			if(entry.getValue().getIdentifier().equals(token[3])) {
 				param2 = entry.getValue().getKey();
 				break;
 			}
 		}
-		LogEvent evt = new LogEvent(time, "disconnect",param1, param2);
+		for(RawPeer peer : knownPeers) {
+			if(peer.getIdentifier().equals(token[3])) { //check known list of peers not in mapping table
+				param2 = peer.getKey();
+				break;
+			}
+		}
+		if(param2 == -1) { //peer still not found, add to the known list of peers
+			RawPeer p = new RawPeer(token[3]);
+			knownPeers.add(p);
+			log("\tPeer not found in mapping table or known peer list.\n\tPut "
+					+token[3]+" into list of known peers not in mapping table.");
+		}
+		LogEvent evt = new LogEvent(time, "disconnect",param1, param2, 0);
+		log("\t"+evt);
 		return evt; 
 	}
 	
@@ -375,7 +416,7 @@ public class P2PGraph implements UDPListener {
 		String rawType = token[2].toLowerCase();
 		long time = Long.parseLong(token[0]);
 		time = time-EPOCH;
-		String peerMappingKey = IPAddress+"-"+port;
+		String peerMappingKey = IPAddress+":"+port;
 		String uniquePeerID = token[1];
 		
 		log("\tTime: "+time+" \n\tType: "+rawType + "\n\tTokens: ");
@@ -383,43 +424,68 @@ public class P2PGraph implements UDPListener {
 			log("\t\t"+token[i]);
 		}
 		
-		if(!peerTable.containsKey(peerMappingKey)) {
+		checkPeerInTable(peerMappingKey, uniquePeerID);
+		if(rawType.equals("queryhit")) {
+			return  parseQueryHit(time, peerMappingKey, token);
+		} 
+		else if(rawType.equals("query_reaches_peer")) {
+			return  parseQueryReachesPeer(time, peerMappingKey, token);
+		} 
+		else if(rawType.equals("query")) {
+			return  parseQuery(time, peerMappingKey, token);
+		}
+		else if(rawType.equals("online")) {
+			log("parsing online.");
+			return  parseOnline(time, peerMappingKey);
+		} 
+		else if(rawType.equals("offline")) {
+			return  parseOffline(time, peerMappingKey);
+		}
+		else if(rawType.equals("connect")) {
+			return  parseConnect(time, peerMappingKey, token);
+		}
+		else if(rawType.equals("disconnect")) {
+			return  parseDisconnect(time, peerMappingKey, token);
+		}		
+		else if(rawType.equals("publish")) {
+			return  parsePublish(time, peerMappingKey, token);
+		} 
+		else if(rawType.equals("remove")) {
+			return  parseRemove(time, peerMappingKey, token);
+		}
+		
+		LogEvent evt = new LogEvent(-1, "ERROR, Event not parsed Properly.", 0, 0, 0);		
+		logError("\tMessage not parsed Properly.\n");
+		return evt;
+	}
+	
+	/**
+	 * Checks if the peer which sent this UDP Message is in the peer mapping table or the 
+	 * list of known peers not in the table.
+	 * 
+	 * If the peer is in the table, nothing happens.
+	 * If the peer is in the list of known peers not in the table, they are removed from the list and added to the table.
+	 * If the peer is not in the list or the table, a new peer is created and put into the table.
+	 * 
+	 * @param peerMappingKey	The mapping key for this given peer "IP:UDPport".
+	 * @param uniquePeerID	The unique ID for this peer "GnutellaID".
+	 */
+	private void checkPeerInTable(String peerMappingKey, String uniquePeerID) {
+		if(!peerTable.containsKey(peerMappingKey)) { //check mapping table
+			for ( Iterator<RawPeer> peers = knownPeers.iterator(); peers.hasNext(); ) {
+				RawPeer p = peers.next();
+				if(p.getIdentifier().equals(uniquePeerID)) { //check known list of peers not in mapping table
+					peerTable.put(peerMappingKey, p);
+					peers.remove();
+					log("\tPeer not found in mapping table or list of known peers not in mapping table.\n\tPut: "+peerMappingKey+"->"+uniquePeerID);
+					return;
+				}
+			}
+			//not found in mapping table or list of known peers
 			RawPeer p = new RawPeer(uniquePeerID);
 			peerTable.put(peerMappingKey, p);
 			log("\tPeer not found in mapping table.\n\tPut: "+peerMappingKey+"->"+uniquePeerID);
 		}
-		
-		if(rawType.equals("queryHit")) {
-			return  parseQueryHit(time, peerMappingKey, uniquePeerID, token);
-		} 
-		else if(rawType.equals("query_reaches_peer")) {
-			return  parseQueryReachesPeer(time, peerMappingKey, uniquePeerID, token);
-		} 
-		else if(rawType.equals("query")) {
-			return  parseQuery(time, peerMappingKey, uniquePeerID, token);
-		}
-		else if(rawType.equals("online")) {
-			return  parseOnline(time, peerMappingKey, uniquePeerID);
-		} 
-		else if(rawType.equals("offline")) {
-			return  parseOffline(time, peerMappingKey, uniquePeerID);
-		}
-		else if(rawType.equals("connect")) {
-			return  parseConnect(time, peerMappingKey, uniquePeerID, token);
-		}
-		else if(rawType.equals("disconnect")) {
-			return  parseDisconnect(time, peerMappingKey, uniquePeerID, token);
-		}		
-		else if(rawType.equals("publish")) {
-			return  parsePublish(time, peerMappingKey, uniquePeerID, token);
-		} 
-		else if(rawType.equals("remove")) {
-			return  parseRemove(time, peerMappingKey, uniquePeerID, token);
-		}
-		
-		LogEvent evt = new LogEvent(-1, "ERROR, Event not parsed Properly.", 0, 0);		
-		logError("\tMessage not parsed Properly.\n");
-		return evt;
 	}
 	//[end] Parsing Methods
 
@@ -477,11 +543,104 @@ public class P2PGraph implements UDPListener {
 		
 		b.append("\t<H3>Log of Events</H3>\n");
 		
-		b.append("\t<table bgcolor=\"#999999\">\n\t<tr><td>\n\t<p>\n");
+		b.append("\t<table bgcolor=\"#AAAAAA\">\n\t<tr><td>\n\t<p>\n");
 		
 		b.append("\t<pre>\n\t"+graphLog+"\t</pre></p></td></tr></table>\n");
 		return b.toString();
 	}
+	
+	//[start] Get Raw Data
+	/**
+	 * Returns a String with information on all the peers who ever come online.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with peer information.
+	 */
+	public String getPeerInfo() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("\t<H3>Peers</H3>\n");
+		buffer.append("<dd>Total Peers: "+peerTable.size()+"<br />\n");
+		buffer.append("\t<UL>\n");
+		for(String key : peerTable.keySet()) {
+			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+peerTable.get(key).toString()+"</PRE></LI>\n");
+		}
+		buffer.append("\t</UL>\n");
+		return buffer.toString();
+	}
+	
+	/**
+	 * Returns a String with information on all queryies placed and their Identifers
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with query output information.
+	 */
+	public String getQueryOutputInfo() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("\t<H3>Query Outputs</H3>\n");
+		buffer.append("<dd>Total Query IDs: "+queryOutputTable.size()+"<br />\n");
+		
+		buffer.append(queryOutputTable.toHTMLList());
+		
+		return buffer.toString();
+	}
+	
+	/**
+	 * Returns a String with information on all the documents that are ever published.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with document information.
+	 */
+	public String getDocumentInfo() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("\t<H3>Documents Published</H3>\n");
+		buffer.append("<dd>Total documents: "+documentTable.size()+"<br />\n");
+		buffer.append("\t<UL>\n");
+		for(String key : documentTable.keySet()) {
+			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+documentTable.get(key).toString()+"</PRE></LI>\n");
+		}
+		buffer.append("\t</UL>\n");
+		return buffer.toString();
+	}
+	
+	/**
+	 * Returns a String with information on all the queries ever placed.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with query information.
+	 */
+	public String getQueryInfo() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("\t<H3>Querys</H3>\n");
+		buffer.append("<dd>Total Queries: "+queryTable.size()+"<br />\n");
+		buffer.append("\t<UL>\n");
+		for(Integer key : queryTable.keySet()) {
+			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+queryTable.get(key).toString()+"</PRE></LI>\n");
+		}
+		buffer.append("\t</UL>\n");
+		return buffer.toString();
+	}
+	
+	
+	/**
+	 * Returns a String with information on all the query hits.
+	 * 
+	 * Contains HTML attributes for being displayed in a browser.
+	 * @return HTML String with all query hit information.
+	 */
+	public String getQueryHitInfo() {
+		StringBuffer buffer = new StringBuffer();
+		
+		buffer.append("\t<H3>Query Hits</H3>\n");
+		buffer.append("<dd>Total Hits: "+queryHitTable.size()+"<br />\n");
+		buffer.append("\t<UL>\n");
+		for(Integer key : queryHitTable.keySet()) {
+			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+queryHitTable.get(key).toString()+"</PRE></LI>\n");
+		}
+		buffer.append("\t</UL>\n");
+		return buffer.toString();
+	}
+	//[end] Get Raw Data
+	
 	//[end] Getters for the HTTP servlet
 
 	//[start] UDP Listener

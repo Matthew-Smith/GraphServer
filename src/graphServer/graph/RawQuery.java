@@ -60,4 +60,10 @@ public class RawQuery {
 		return key;
 	}
 	
+	@Override
+	public String toString() {
+		return "Key Index:     "+key+"\n" +
+		       "Community:     "+community+"\n"+
+		       "Query String:  "+queryString+"\n";
+	}
 }

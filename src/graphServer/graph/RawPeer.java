@@ -48,4 +48,8 @@ public class RawPeer {
 		return key;
 	}
 	
+	@Override
+	public String toString() {
+		return "Key Index: "+key+"\nIdentifier: "+identifier;
+	}
 }
