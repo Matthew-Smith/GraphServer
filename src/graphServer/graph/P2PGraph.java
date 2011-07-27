@@ -113,7 +113,6 @@ public class P2PGraph implements UDPListener {
 			}
 		}
 		log(""); // put a new line in the log
-		
 		String s = P2PNetworkGraphSaver.saveEventsForWeb(toSend, simulationTime);
 		return s;
 	}
@@ -435,7 +434,6 @@ public class P2PGraph implements UDPListener {
 			return  parseQuery(time, peerMappingKey, token);
 		}
 		else if(rawType.equals("online")) {
-			log("parsing online.");
 			return  parseOnline(time, peerMappingKey);
 		} 
 		else if(rawType.equals("offline")) {
@@ -497,7 +495,6 @@ public class P2PGraph implements UDPListener {
 	 * @return The XML document containing the log events, as a string.
 	 */
 	public String getLogEventsAfter(long time) {
-		System.out.println("in P2PGraph");
 		return createLogEventDocument(time);
 	}
 
@@ -662,11 +659,11 @@ public class P2PGraph implements UDPListener {
 				new Timer(true).schedule(new DecolourTask(opposite), delay);
 			}
 			
-			graph.robustGraphEvent(evt); //build the primary graph taking all events into account
 			synchronized(logEvents) {
 				logEvents.add(evt);
 				log("\tEvent Added to list.\n");
 			}
+			graph.robustGraphEvent(logEvents,logEvents.size()-1); //build the primary graph taking all events into account
 			simulationTime = evt.getTime(); //update the server's time to the latest incoming event
 		}
 	}
@@ -706,7 +703,8 @@ public class P2PGraph implements UDPListener {
 			
 			synchronized(logEvents) {
 				logEvents.add(toAdd);
-				Collections.sort(logEvents);
+				Collections.sort(logEvents); //TODO: iterate backwards to increase efficiency
+				graph.robustGraphEvent(logEvents, logEvents.size()-1);
 			}
 		}
 	}

@@ -63,7 +63,7 @@ public class RawDocument {
 	
 	/**
 	 * Sets the title of the document.
-	 * @param The title this document will be given.
+	 * @param title The title this document will be given.
 	 */
 	public void setTitle(String title) {
 		this.title = title;
