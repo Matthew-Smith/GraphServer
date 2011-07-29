@@ -132,6 +132,9 @@ public class GraphServlet extends HttpServlet
 	 */
 	private String doGetDebug() {
 		StringBuffer b = new StringBuffer();
+		//Add a CSS Script for setting a section of text to be separately scrollable
+		b.append(getScrollableCSS());
+		
 		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
 		b.append("\t<H1>Debug Info</H1>\n");
 		
@@ -168,6 +171,7 @@ public class GraphServlet extends HttpServlet
 	 */
 	private String doGetQueryInfo() {
 		StringBuffer b = new StringBuffer();
+		b.append(getScrollableCSS());
 		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
 		
 		//get the query info from the graph
@@ -185,6 +189,7 @@ public class GraphServlet extends HttpServlet
 	 */
 	private String doGetDocumentInfo() {
 		StringBuffer b = new StringBuffer();
+		b.append(getScrollableCSS());
 		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
 		
 		//get the document info from the graph
@@ -202,6 +207,7 @@ public class GraphServlet extends HttpServlet
 	 */
 	private String doGetQueryOutputInfo() {
 		StringBuffer b = new StringBuffer();
+		b.append(getScrollableCSS());
 		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
 		
 		//get the query output info from the graph
@@ -219,6 +225,7 @@ public class GraphServlet extends HttpServlet
 	 */
 	private String doGetPeerInfo() {
 		StringBuffer b = new StringBuffer();
+		b.append(getScrollableCSS());
 		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
 		
 		//get the peer info from the graph
@@ -236,6 +243,7 @@ public class GraphServlet extends HttpServlet
 	 */
 	private String doGetRawData() {
 		StringBuffer b = new StringBuffer();
+		b.append(getScrollableCSS());
 		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
 		b.append("\t<H1>Raw Data</H1>\n");
 		
@@ -247,6 +255,20 @@ public class GraphServlet extends HttpServlet
 		
 		b.append("\t</BODY>\n</HTML>");
 		return b.toString();
+	}
+	
+	private static String getScrollableCSS() {
+		return 	"<style type=\"text/css\">\n" +
+				"<!--\n" +
+				"div.scroll {\n" +
+				"height: 300px;\n" +
+				"overflow: auto;\n" +
+				"border: 1px solid #666;\n" +
+				"background-color: #ccc;\n" +
+				"padding: 8px;\n" +
+				"}\n" +
+				"-->\n" +
+				"</style>";
 	}
 	//[end] Getters for this servlet's specific requests
 }

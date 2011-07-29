@@ -517,10 +517,6 @@ public class P2PGraph implements UDPListener {
 	public String getDebugInfo() { 
 		StringBuffer b = new StringBuffer();
 		
-		//Add a CSS Script for setting a section of text to be separately scrollable
-		b.append("<style type=\"text/css\">\n<!--\ndiv.scroll {\n" +
-				"height: 300px;\noverflow: auto;\nborder: 1px solid #666;\n" +
-				"background-color: #ccc;\npadding: 8px;\n}\n-->\n</style>");
 		
 		b.append("\t<H3>LogEvents</H3>\n");
 		b.append("\t<dd>Total Events: "+logEvents.size()+"<br />\n");
@@ -563,11 +559,13 @@ public class P2PGraph implements UDPListener {
 		StringBuffer buffer = new StringBuffer();
 		buffer.append("\t<H3>Peers</H3>\n");
 		buffer.append("<dd>Total Peers: "+peerTable.size()+"<br />\n");
+		buffer.append("\t<div class=\"scroll\">\n");
 		buffer.append("\t<UL>\n");
 		for(String key : peerTable.keySet()) {
 			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+peerTable.get(key).toString()+"</PRE></LI>\n");
 		}
 		buffer.append("\t</UL>\n");
+		buffer.append("\t</div>\n");
 		return buffer.toString();
 	}
 	
@@ -581,8 +579,9 @@ public class P2PGraph implements UDPListener {
 		StringBuffer buffer = new StringBuffer();
 		buffer.append("\t<H3>Query Outputs</H3>\n");
 		buffer.append("<dd>Total Query IDs: "+queryOutputTable.size()+"<br />\n");
-		
+		buffer.append("\t<div class=\"scroll\">\n");
 		buffer.append(queryOutputTable.toHTMLList());
+		buffer.append("\t</div>\n");
 		
 		return buffer.toString();
 	}
@@ -597,11 +596,13 @@ public class P2PGraph implements UDPListener {
 		StringBuffer buffer = new StringBuffer();
 		buffer.append("\t<H3>Documents Published</H3>\n");
 		buffer.append("<dd>Total documents: "+documentTable.size()+"<br />\n");
+		buffer.append("\t<div class=\"scroll\">\n");
 		buffer.append("\t<UL>\n");
 		for(String key : documentTable.keySet()) {
 			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+documentTable.get(key).toString()+"</PRE></LI>\n");
 		}
 		buffer.append("\t</UL>\n");
+		buffer.append("\t</div>\n");
 		return buffer.toString();
 	}
 	
@@ -615,11 +616,13 @@ public class P2PGraph implements UDPListener {
 		StringBuffer buffer = new StringBuffer();
 		buffer.append("\t<H3>Querys</H3>\n");
 		buffer.append("<dd>Total Queries: "+queryTable.size()+"<br />\n");
+		buffer.append("\t<div class=\"scroll\">\n");
 		buffer.append("\t<UL>\n");
 		for(Integer key : queryTable.keySet()) {
 			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+queryTable.get(key).toString()+"</PRE></LI>\n");
 		}
 		buffer.append("\t</UL>\n");
+		buffer.append("\t</div>\n");
 		return buffer.toString();
 	}
 	
@@ -635,11 +638,13 @@ public class P2PGraph implements UDPListener {
 		
 		buffer.append("\t<H3>Query Hits</H3>\n");
 		buffer.append("<dd>Total Hits: "+queryHitTable.size()+"<br />\n");
+		buffer.append("\t<div class=\"scroll\">\n");
 		buffer.append("\t<UL>\n");
 		for(Integer key : queryHitTable.keySet()) {
 			buffer.append("\t\t<LI><PRE>Mapping Key: "+key+"\n"+queryHitTable.get(key).toString()+"</PRE></LI>\n");
 		}
 		buffer.append("\t</UL>\n");
+		buffer.append("\t</div>\n");
 		return buffer.toString();
 	}
 	//[end] Get Raw Data
