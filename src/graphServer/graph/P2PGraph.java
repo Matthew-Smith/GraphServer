@@ -517,32 +517,38 @@ public class P2PGraph implements UDPListener {
 	public String getDebugInfo() { 
 		StringBuffer b = new StringBuffer();
 		
+		//Add a CSS Script for setting a section of text to be separately scrollable
+		b.append("<style type=\"text/css\">\n<!--\ndiv.scroll {\n" +
+				"height: 300px;\noverflow: auto;\nborder: 1px solid #666;\n" +
+				"background-color: #ccc;\npadding: 8px;\n}\n-->\n</style>");
 		
 		b.append("\t<H3>LogEvents</H3>\n");
-		b.append("<dd>Total Events: "+logEvents.size()+"<br />\n");
-		b.append("\t<OL>\n");
+		b.append("\t<dd>Total Events: "+logEvents.size()+"<br />\n");
+		b.append("\t<div class=\"scroll\">");
+		b.append("\t\t<OL>\n");
 		for(LogEvent event : logEvents) {
-			b.append("\t\t<LI>"+event.toString()+"</LI>\n");
+			b.append("\t\t\t<LI>"+event.toString()+"</LI>\n");
 		}
-		b.append("\t</OL>\n");
+		b.append("\t\t</OL>\n");
+		b.append("</div>");
 		
 		b.append("\t<H3>Graph Info</H3>\n");
 		b.append("<dd>Number of Vertices: "+graph.getVertexCount()+"<br />\n");
 		b.append("<dd>Number of Edges: "+graph.getEdgeCount()+"<br />\n");
 		
 		b.append("\t<H3>Incoming UDPMessages</H3>\n");
-		
+		b.append("\t<div class=\"scroll\">");
 		b.append("\t<pre>");
 		for(String message : incomingMessages) {
 			b.append("\n"+message);
 		}
 		b.append("\t</pre>\n");
+		b.append("\t</div>");
 		
 		b.append("\t<H3>Log of Events</H3>\n");
 		
-		b.append("\t<table bgcolor=\"#AAAAAA\">\n\t<tr><td>\n\t<p>\n");
-		
-		b.append("\t<pre>\n\t"+graphLog+"\t</pre></p></td></tr></table>\n");
+		//add the graphLog
+		b.append("\t<div class=\"scroll\">\n\t<p>\n\t<pre>\n\t"+graphLog+"\t</pre></p></div>\n");
 		return b.toString();
 	}
 	
