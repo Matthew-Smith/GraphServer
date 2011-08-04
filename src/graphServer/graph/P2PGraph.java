@@ -10,6 +10,8 @@ package graphServer.graph;
 
 import graphServer.UDPListener;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.Hashtable;
@@ -31,14 +33,13 @@ import spiderweb.graph.LogEvent;
  * @author <A HREF="mailto:smith_matthew@live.com">Matthew Smith</A>
  * @version Date: 18/07/2011 
  */
-public class P2PGraph implements UDPListener {
-									  
-	public static final long EPOCH = 1309514400000L; //Happy Canada Day 2011 (July 1, 2011 12:00am GMT)
+public class P2PGraph implements UDPListener, ActionListener {
 	
 	private P2PNetworkGraph graph;
 	private P2PNetworkGraph referenceGraph;
 	private List<LogEvent> logEvents;
 	private long simulationTime;
+	private long startingTime;
 	private Hashtable<String, RawPeer> peerTable;			// IP:UDPport -> IP:Gnutella Port + key
 	private Hashtable<String, RawDocument> documentTable;	// CommunityID/DocumentID -> Community + Document + key
 	private Hashtable<Integer, RawQuery> queryTable;		// QueryOutput key -> Community + QueryString + key
@@ -46,6 +47,7 @@ public class P2PGraph implements UDPListener {
 	private QueryOutputs queryOutputTable;					// index(QueryOutput key) -> QueryID
 	private LinkedList<String> incomingMessages;
 	private StringBuffer graphLog;
+	private javax.swing.Timer simulationTimeUpdater;
 	
 	//Peers who have been connected to but there is no knowledge of their UDP information
 	private LinkedList<RawPeer> knownPeers;	
@@ -56,10 +58,10 @@ public class P2PGraph implements UDPListener {
 	 * Sets up the graph and lists/tables for storing and handling UDP Messages.
 	 */
 	public P2PGraph() {
+		
 		referenceGraph = new P2PNetworkGraph();
 		graph = new P2PNetworkGraph();
 		logEvents = new LinkedList<LogEvent>();
-		simulationTime = 0L;
 		
 		peerTable = new Hashtable<String, RawPeer>();
 		documentTable = new Hashtable<String, RawDocument>();
@@ -71,7 +73,12 @@ public class P2PGraph implements UDPListener {
 		graphLog = new StringBuffer();
 		
 		knownPeers = new LinkedList<RawPeer>();
-		log("Constructor Completed.");
+
+		startingTime = System.currentTimeMillis();
+		simulationTime = 0;
+		simulationTimeUpdater = new javax.swing.Timer(1000, this);
+		simulationTimeUpdater.start();
+		log("started server time="+startingTime);
 	}
 	//[end] Constructor
 
@@ -98,22 +105,24 @@ public class P2PGraph implements UDPListener {
 		log("\n\tCreating Document for Log Events after time: "+time+"ms");
 		List<LogEvent> toSend = new LinkedList<LogEvent>();
 		
-		ListIterator<LogEvent> it = logEvents.listIterator(logEvents.size()-1);
-		
-		log("\tEvents to send: ");
-		
-		while(it.hasPrevious()) { //go backwards through list
-			LogEvent evt = it.previous();
-			if(time<evt.getTime()) { //don't add the event at the passed time as they will already have it
-				toSend.add(0,evt); //add event to the beginning of the list of events to send because of iterating in reverse.
-				log("\t\t"+evt);
-			}
-			else {
-				break; //since Log Events are ordered in the list, there will be no point continuing the loop
+		if(!logEvents.isEmpty()) {
+			ListIterator<LogEvent> it = logEvents.listIterator(logEvents.size());
+			
+			log("\tEvents to send: ");
+			
+			while(it.hasPrevious()) { //go backwards through list
+				LogEvent evt = it.previous();
+				if(time<evt.getTime()) { //don't add the event at the passed time as they will already have it
+					toSend.add(0,evt); //add event to the beginning of the list of events to send because of iterating in reverse.
+					log("\t\t"+evt);
+				}
+				else {
+					break; //since Log Events are ordered in the list, there will be no point continuing the loop
+				}
 			}
 		}
 		log(""); // put a new line in the log
-		String s = P2PNetworkGraphSaver.saveEventsForWeb(toSend, simulationTime);
+		String s = P2PNetworkGraphSaver.saveEventsForWeb(toSend, time, simulationTime);
 		return s;
 	}
 	//[end] Create Documents for sending over the web
@@ -150,7 +159,6 @@ public class P2PGraph implements UDPListener {
 	 */
 	private LogEvent parseQueryHit(long time, String peerMappingKey, String[] token) {
 		// time	IP:gnutellaPort	QUERYHIT	QueryID		communityID	 documentID	 documentName
-		
 		
 		//[start] get Document info
 		String documentMappingKey = token[4]+"/"+token[5]; // "communityID/documentID"
@@ -413,8 +421,8 @@ public class P2PGraph implements UDPListener {
 		String delim = "\\s+";
 		String[] token = rawEvent.split(delim);
 		String rawType = token[2].toLowerCase();
-		long time = Long.parseLong(token[0]);
-		time = time-EPOCH;
+		//don't use the incoming message's time as it could have a discrepancy (that peer thinks it is a different time than the server)
+		long time = System.currentTimeMillis()-startingTime;//Long.parseLong(token[0]); 
 		String peerMappingKey = IPAddress+":"+port;
 		String uniquePeerID = token[1];
 		
@@ -733,4 +741,11 @@ public class P2PGraph implements UDPListener {
 		}
 	}
 	//[end] Decolour Task Class
+
+	//[start] simulation time updater
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		simulationTime = System.currentTimeMillis()-startingTime;
+	}
+	//[end] simulation time updater
 }
