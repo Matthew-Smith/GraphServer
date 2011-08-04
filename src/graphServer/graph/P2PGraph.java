@@ -12,10 +12,10 @@ import graphServer.UDPListener;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map.Entry;
 import java.util.Timer;
@@ -37,7 +37,7 @@ public class P2PGraph implements UDPListener {
 	
 	private P2PNetworkGraph graph;
 	private P2PNetworkGraph referenceGraph;
-	private LinkedList<LogEvent> logEvents;
+	private List<LogEvent> logEvents;
 	private long simulationTime;
 	private Hashtable<String, RawPeer> peerTable;			// IP:UDPport -> IP:Gnutella Port + key
 	private Hashtable<String, RawDocument> documentTable;	// CommunityID/DocumentID -> Community + Document + key
@@ -96,7 +96,7 @@ public class P2PGraph implements UDPListener {
 	 */
 	public String createLogEventDocument(long time) {
 		log("\n\tCreating Document for Log Events after time: "+time+"ms");
-		LinkedList<LogEvent> toSend = new LinkedList<LogEvent>();
+		List<LogEvent> toSend = new LinkedList<LogEvent>();
 		
 		ListIterator<LogEvent> it = logEvents.listIterator(logEvents.size()-1);
 		
@@ -105,7 +105,7 @@ public class P2PGraph implements UDPListener {
 		while(it.hasPrevious()) { //go backwards through list
 			LogEvent evt = it.previous();
 			if(time<evt.getTime()) { //don't add the event at the passed time as they will already have it
-				toSend.addFirst(evt); //add event to the beginning of the list of events to send because of iterating in reverse.
+				toSend.add(0,evt); //add event to the beginning of the list of events to send because of iterating in reverse.
 				log("\t\t"+evt);
 			}
 			else {
@@ -712,10 +712,23 @@ public class P2PGraph implements UDPListener {
 		@Override
 		public void run() {
 			
-			synchronized(logEvents) {
-				logEvents.add(toAdd);
-				Collections.sort(logEvents); //TODO: iterate backwards to increase efficiency
-				graph.robustGraphEvent(logEvents, logEvents.size()-1);
+			if(!logEvents.isEmpty()) { 
+				synchronized(logEvents) {
+					// Generate an iterator. Start just after the last element.
+					ListIterator<LogEvent> li = logEvents.listIterator(logEvents.size());
+					int index = logEvents.size();
+					// Iterate in reverse.
+					while(li.hasPrevious()) {
+						LogEvent evt = li.previous();
+						
+						if(evt.getTime()<toAdd.getTime() || index == 0) { //find the proper time to insert the event
+							logEvents.add(index,toAdd);
+							graph.robustGraphEvent(logEvents, index);
+							break;
+						}
+						index--;
+					}
+				}
 			}
 		}
 	}
