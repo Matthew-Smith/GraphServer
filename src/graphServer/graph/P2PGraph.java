@@ -360,6 +360,7 @@ public class P2PGraph implements UDPListener, ActionListener {
 			knownPeers.add(p);
 			log("\tPeer not found in mapping table or known peer list.\n\tPut "
 					+token[3]+" into list of known peers not in mapping table.");
+			param2=p.getKey();
 		}
 		LogEvent evt = new LogEvent(time, "connect",param1, param2, 0);
 		log("\t"+evt);
@@ -396,6 +397,7 @@ public class P2PGraph implements UDPListener, ActionListener {
 			knownPeers.add(p);
 			log("\tPeer not found in mapping table or known peer list.\n\tPut "
 					+token[3]+" into list of known peers not in mapping table.");
+			param2 = p.getKey();
 		}
 		LogEvent evt = new LogEvent(time, "disconnect",param1, param2, 0);
 		log("\t"+evt);
