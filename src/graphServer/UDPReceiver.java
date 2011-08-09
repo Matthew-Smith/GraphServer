@@ -110,6 +110,15 @@ public class UDPReceiver {
 	public void addListener(UDPListener listener) {
 		listeners.add(listener);
 	}
+	
+	/**
+	 * Removes the UDP Listener from the list of listeners.
+	 * @param listener The UDP Listener which will be removed
+	 * * @see UDPListener
+	 */
+	public void removeListener(UDPListener listener) {
+		listeners.remove(listener);
+	}
 
 	/**
 	 * Notifies all listeners on a new thread that a message has been received.
@@ -195,6 +204,15 @@ public class UDPReceiver {
 		b.append("<dd>Number of packets in the buffer: "+receivedData.size()+"\n</p>\n");
 		
 		return b.toString();
+	}
+	
+	public boolean reset() {
+		listeners.clear();
+		receivedData.clear();
+		if(!listeners.isEmpty() || !receivedData.isEmpty()) {
+			return false;
+		}
+		return true;
 	}
 	//[end] Debug
 }

@@ -527,6 +527,8 @@ public class P2PGraph implements UDPListener, ActionListener {
 	public String getDebugInfo() { 
 		StringBuffer b = new StringBuffer();
 		
+		b.append("<H4><A HREF=\"/graphServer/reset\">Reset</A></H4>");
+		b.append("<dd>Up Time: "+simulationTime);
 		
 		b.append("\t<H3>LogEvents</H3>\n");
 		b.append("\t<dd>Total Events: "+logEvents.size()+"<br />\n");

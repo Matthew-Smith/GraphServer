@@ -9,6 +9,10 @@
 package graphServer;
 
 import graphServer.graph.P2PGraph;
+import graphServer.graph.RawDocument;
+import graphServer.graph.RawPeer;
+import graphServer.graph.RawQuery;
+import graphServer.graph.RawQueryHit;
 
 import javax.servlet.http.*;
 
@@ -79,6 +83,9 @@ public class GraphServlet extends HttpServlet
 			else if(req.getRequestURI().endsWith("getRawData")) {
 				responseString = doGetRawData();
 			}
+			else if(req.getRequestURI().endsWith("reset")) {
+				responseString = doReset();
+			}
 			else {
 				responseString = "<ERROR/>";
 				resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -98,9 +105,6 @@ public class GraphServlet extends HttpServlet
 
 	}
 	//[end] Overridden init and doGet from HttpServlet
-	
-	
-
 
 	//[start] Getters for this servlet's specific requests
 	/**
@@ -135,7 +139,7 @@ public class GraphServlet extends HttpServlet
 		//Add a CSS Script for setting a section of text to be separately scrollable
 		b.append(getScrollableCSS());
 		
-		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("<HTML>\n\t<BODY>\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"2\">"); //add on HTML Tags for browser viewing
 		b.append("\t<H1>Debug Info</H1>\n");
 		
 		//get the debug info from the graph and UDP Receiver
@@ -154,7 +158,7 @@ public class GraphServlet extends HttpServlet
 	 */
 	private String doGetQueryHitInfo() {
 		StringBuffer b = new StringBuffer();
-		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("<HTML>\n\t<BODY>\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"2\">"); //add on HTML Tags for browser viewing
 		
 		//get the query hit info from the graph
 		b.append(graph.getQueryHitInfo()); 
@@ -172,7 +176,7 @@ public class GraphServlet extends HttpServlet
 	private String doGetQueryInfo() {
 		StringBuffer b = new StringBuffer();
 		b.append(getScrollableCSS());
-		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("<HTML>\n\t<BODY>\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"2\">"); //add on HTML Tags for browser viewing
 		
 		//get the query info from the graph
 		b.append(graph.getQueryInfo()); 
@@ -190,7 +194,7 @@ public class GraphServlet extends HttpServlet
 	private String doGetDocumentInfo() {
 		StringBuffer b = new StringBuffer();
 		b.append(getScrollableCSS());
-		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("<HTML>\n\t<BODY>\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"2\">"); //add on HTML Tags for browser viewing
 		
 		//get the document info from the graph
 		b.append(graph.getDocumentInfo()); 
@@ -208,7 +212,7 @@ public class GraphServlet extends HttpServlet
 	private String doGetQueryOutputInfo() {
 		StringBuffer b = new StringBuffer();
 		b.append(getScrollableCSS());
-		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("<HTML>\n\t<BODY>\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"2\">"); //add on HTML Tags for browser viewing
 		
 		//get the query output info from the graph
 		b.append(graph.getQueryOutputInfo()); 
@@ -226,7 +230,7 @@ public class GraphServlet extends HttpServlet
 	private String doGetPeerInfo() {
 		StringBuffer b = new StringBuffer();
 		b.append(getScrollableCSS());
-		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("<HTML>\n\t<BODY>\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"2\">"); //add on HTML Tags for browser viewing
 		
 		//get the peer info from the graph
 		b.append(graph.getPeerInfo()); 
@@ -244,7 +248,7 @@ public class GraphServlet extends HttpServlet
 	private String doGetRawData() {
 		StringBuffer b = new StringBuffer();
 		b.append(getScrollableCSS());
-		b.append("<HTML>\n\t<BODY>\n"); //add on HTML Tags for browser viewing
+		b.append("<HTML>\n\t<BODY>\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"2\">"); //add on HTML Tags for browser viewing
 		b.append("\t<H1>Raw Data</H1>\n");
 		
 		b.append(graph.getPeerInfo()); 
@@ -255,6 +259,33 @@ public class GraphServlet extends HttpServlet
 		
 		b.append("\t</BODY>\n</HTML>");
 		return b.toString();
+	}
+	
+	/**
+	 * Resets the classes of the graph to make it easier to 'restart' the server for testing.
+	 * 
+	 * @return message stating the success of the reset.
+	 */
+	private String doReset() {
+		try {
+			udpReceiver.reset();
+			graph = new P2PGraph();
+			RawPeer.reset();
+			RawDocument.reset();
+			RawQuery.reset();
+			RawQueryHit.reset();
+			
+			udpReceiver.addListener(graph);
+			return 	"<HTML>" +
+					"\n\t<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"1; URL=/graphServer/debug\">" +
+					"\n\t<BODY>" +
+					"\n\t\tReset okay" +
+					"\n\t</BODY>"+
+					"</HTML>";
+		}
+		catch(Exception e) {
+			return e.getMessage();
+		}
 	}
 	
 	private static String getScrollableCSS() {

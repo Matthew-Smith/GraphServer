@@ -72,4 +72,12 @@ public class RawQueryHit {
 		}
 		return buffer.toString();
 	}
+	
+	/**
+	 * for debugging, a reset allows the server to restart 
+	 * without actually shutting down (ease of use)
+	 */
+	public static void reset() {
+		keyCounter = 0;
+	}
 }

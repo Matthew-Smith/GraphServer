@@ -66,4 +66,12 @@ public class RawQuery {
 		       "Community:     "+community+"\n"+
 		       "Query String:  "+queryString+"\n";
 	}
+	
+	/**
+	 * for debugging, a reset allows the server to restart 
+	 * without actually shutting down (ease of use)
+	 */
+	public static void reset() {
+		keyCounter = 0;
+	}
 }

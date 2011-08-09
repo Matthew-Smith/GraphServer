@@ -84,4 +84,12 @@ public class RawDocument {
 		       "Document:  "+document+"\n"+
 		       "Title:     "+title;
 	}
+	
+	/**
+	 * for debugging, a reset allows the server to restart 
+	 * without actually shutting down (ease of use)
+	 */
+	public static void reset() {
+		keyCounter = 0;
+	}
 }
